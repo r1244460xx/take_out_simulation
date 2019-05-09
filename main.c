@@ -2,6 +2,8 @@
 #include<stdlib.h>
 #include<math.h>
 #include<string.h>
+#include<time.h>
+
 
 #define ARRIVE 0
 #define DEPART 1
@@ -62,7 +64,7 @@ void initialize(void) {
 
 void timing(void) {
     int min_next_event = INF - 1;
-    next_event_type = NULL;
+    next_event_type = 3; //set to NULL
     for(int i = 0; i < 3; i++) {
         if(time_next_event[i] < min_next_event) {
             min_next_event = time_next_event[i];
@@ -77,7 +79,7 @@ void update_stat(void) {
 }
 
 void arrive(void) {
-    int delay;
+    //int delay;
     time_next_event[0] = sim_time + new_arrival();
     if(order_status == BUSY) {
         //check the length of q
