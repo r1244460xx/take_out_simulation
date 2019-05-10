@@ -14,7 +14,7 @@
 #define DEPART_KITCHEN 2
 #define DEPART_STORE 3
 #define END 4
-#define END_TIME 72000
+#define END_TIME 7200
 
 typedef struct node{
     int time;
@@ -41,48 +41,48 @@ int num_cust_served = 0;
 int total_delay = 0;
 int time_next_event[5];
 
-NODE *order_head = NULL; 
-NODE *order_tail = NULL;
+int left_cust = 0;
 
-NODE *cook_head = NULL;
-NODE *cook_tail = NULL;
+PTR_SET order_set;
+PTR_SET cook_set;
+PTR_SET food_set;
 
-NODE *food_head = NULL;
-NODE *food_tail = NULL;
-
-void enqueue(int data, NODE** tail) {
+void enqueue(int data, PTR_SET *set) {
     NODE* temp = (NODE*)malloc(sizeof(NODE));
     if(temp == NULL) {
         printf("The pointer is NULL\n");
         exit(1);
     }
-    if(*tail == NULL) {
-        *tail = temp;
-
-        (*tail)->next = NULL;
-        (*tail)->time = data;
+    if((*set).tail == NULL) {
+        (*set).tail = temp;
+        (*set).head = temp;
+        (*set).tail->next = NULL;
+        (*set).tail->time = data;
     }
     else {
-        (*tail)->next = temp;
-        *tail = (*tail)->next;
-        (*tail)->time = data;
-        (*tail)->next = NULL;
+        (*set).tail->next = temp;
+        (*set).tail = (*set).tail->next;
+        (*set).tail->time = data;
+        (*set).tail->next = NULL;
     }
 }
 
-int dequeue(NODE** head) {
-    int data;
-    if(*head != NULL) {
-        NODE* temp = *head;
-        data = (*head)->time;
-        *head = (*head)->next;
+int dequeue(PTR_SET *set) {   
+    if((*set).head != NULL) {
+        int data;
+        NODE* temp = (*set).head;
+        data = (*set).head->time;
+        (*set).head = (*set).head->next;
         free(temp);
+        if((*set).head == NULL) {
+            (*set).tail = NULL;
+        }
         return data;
-    }
+    }  
     else {
-        printf("Dequeue NULL node!!\n");
+        printf("The pointer is NULL\n");
         exit(1);
-    } 
+    }
 }
 
 int new_arrival(void) {
@@ -132,13 +132,25 @@ void update_stat(void) {
 
 void arrive_order(void) {
     time_next_event[ARRIVE] = sim_time + new_arrival();
+    left_cust++;
     if(order_status == BUSY) {
         num_order_q++;
-        enqueue(sim_time, &order_tail);
+        enqueue(sim_time, &order_set);
     }
     else {
         order_status = BUSY;
         time_next_event[DEPART_ORDER] = sim_time + new_order_delay();
+    }
+}
+
+void arrive_kitchen(void) {
+    if(kitchen_status == BUSY) {
+        num_kitchen_q++;
+        enqueue(sim_time, &cook_set);
+    }
+    else {
+        kitchen_status = BUSY;
+        time_next_event[DEPART_KITCHEN] = sim_time + new_cook_delay();
     }
 }
 
@@ -150,20 +162,19 @@ void depart_order(void) {
     else {
         num_order_q--;
         time_next_event[DEPART_ORDER] = sim_time + new_order_delay();
-        dequeue(&order_head);
+        dequeue(&order_set);
     }
     arrive_kitchen();
-    //arrive_receive();
 }
 
-void arrive_kitchen(void) {
-    if(kitchen_status == BUSY) {
-        num_kitchen_q++;
-        enqueue(sim_time, &cook_tail);
+void arrive_food(void) {
+    if(receive_status == IDLE) {
+        receive_status = BUSY;
+        time_next_event[DEPART_STORE] = sim_time + new_receive_delay();
     }
     else {
-        kitchen_status = BUSY;
-        time_next_event[DEPART_KITCHEN] = sim_time + new_cook_delay();
+        enqueue(sim_time, &food_set);
+        num_food_q++;
     }
 }
 
@@ -179,21 +190,6 @@ void depart_kitchen(void) {
     arrive_food();
 }
 
-void arrive_food(void) {
-    if(receive_status == IDLE) {
-        receive_status = BUSY;
-        time_next_event[DEPART_STORE] = sim_time + new_receive_delay();
-    }
-    else {
-        enqueue(sim_time, &food_tail);
-        num_food_q++;
-    }
-}
-
-void arrive_receive(void) {
-    
-}
-
 void depart_store(void) {
     if( num_food_q == 0) {
         time_next_event[DEPART_STORE] = INF;
@@ -202,14 +198,16 @@ void depart_store(void) {
     else {
         time_next_event[DEPART_STORE] = sim_time + new_receive_delay();
         num_food_q--;
-        dequeue(&food_head);
+        dequeue(&food_set);
         num_cust_served++;
     }
+    left_cust--;
 }
  
 void report(void) {
     printf("Number of serverd customers: %d\n", num_cust_served);
     printf("Average delay of one customer: %d\n", total_delay / num_cust_served);
+    printf("left customers in store: %d", left_cust); 
 }
 
 void print_time_next_event(void) {
@@ -223,6 +221,7 @@ int main(void) {
     while(1) {
         timing();
         printf("sim_time: %d\n", sim_time);
+        print_time_next_event();
         update_stat();
         switch(next_event_type) {
             case ARRIVE:
@@ -249,13 +248,13 @@ int main(void) {
                 printf("Ending event\n");
                 report();              
                 exit(1);
+                break;
             
             default:
                 printf("Error type\n");
                 exit(1);
                 break;
         }
-        print_time_next_event();
         printf("\n");
-    }  
+    } 
 }

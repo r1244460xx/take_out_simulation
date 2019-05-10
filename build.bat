@@ -1,2 +1,2 @@
 gcc main.c -o out -Wall 
-out
+out > result.txt
