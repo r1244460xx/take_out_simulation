@@ -17,6 +17,11 @@
 
 #define INF 100000000
 
+typedef struct node{
+    int time;
+    struct node* next;
+}NODE;
+
 int sim_time = 0;
 int next_event_type;
 int order_status = IDLE;
@@ -34,6 +39,30 @@ int time_next_event[3];
 
 int time_order_arrive[200];
 int time_receive_arrival[200];
+
+NODE *head = NULL;
+NODE *tail = NULL;
+
+void enqueue(int data) {
+    NODE* ptr = (NODE*)malloc(sizeof(NODE));
+    if(ptr == NULL) {
+        printf("The pointer is NULL");
+        exut(1);
+    }
+    tail->next = ptr;
+    tail = tail->next;
+    tail->time = data;
+    tail->next = NULL;
+}
+
+int dequeue(NODE* ptr) {
+    int data;
+    NODE *temp = head;
+    data = head->time;
+    head = head->next;
+    free(temp);
+    return data;
+}
 
 int new_arrival(void) {
     return rand() % 115;
