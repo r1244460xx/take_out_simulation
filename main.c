@@ -4,17 +4,17 @@
 #include<string.h>
 #include<time.h>
 
+#define INF 100000000
+
 #define IDLE 0
 #define BUSY 1
-
-#define INF 100000000
 
 #define ARRIVE 0
 #define DEPART_ORDER 1
 #define DEPART_KITCHEN 2
 #define DEPART_STORE 3
 #define END 4
-#define END_TIME 3600
+#define END_TIME 7200
 
 typedef struct node{
     int time;
@@ -40,6 +40,9 @@ int num_cust_served = 0;
 int total_delay = 0;
 int time_next_event[5];
 int time_last_event = 0;
+int time_order_busy = 0;
+int time_kitchen_busy = 0;
+int time_receive_busy = 0;
 int rest_cust = 0;
 int value = 0;
 int order_delay = 0;
@@ -141,6 +144,15 @@ void update_stat(void) {
     cook_delay += num_kitchen_q * (sim_time - time_last_event);
     food_delay += num_food_q * (sim_time - time_last_event);
     receive_delay += num_receive_q * (sim_time - time_last_event);
+    if(order_status == BUSY) {
+        time_order_busy += sim_time - time_last_event;
+    }
+    if(kitchen_status == BUSY) {
+        time_kitchen_busy += sim_time - time_last_event;
+    }
+    if(receive_status == BUSY) {
+        time_receive_busy += sim_time - time_last_event;
+    }
 }
 
 void arrive_order(void) {
@@ -222,23 +234,26 @@ void depart_store(void) {
     dequeue(&receive_set);
     num_receive_q--;
 }
- 
+
 void report(void) {
     printf("Total simulation time(s): %d\n", sim_time);
-    printf("Number of serverd customers: %d\n", num_cust_served);
     printf("Average delay of one customer: %d\n", total_delay / num_cust_served);
-    printf("Rest customers in store: %d\n", rest_cust); 
+    printf("\nRest customers in store: %d\n", rest_cust); 
+    printf("Number of serverd customers: %d\n", num_cust_served);
     printf("Number of people in order q: %d\n", num_order_q);
     printf("Number of people in kitchen q: %d\n", num_kitchen_q);
     printf("Number of food in q: %d\n", num_food_q);
     printf("Number of people in receive q: %d\n", num_receive_q);
-    printf("The status of ordering counter: %d\n", order_status);
+    printf("The income of this time: %d\n", value);
+    printf("\nThe status of ordering counter: %d\n", order_status);
     printf("The status of kitchen counter: %d\n", kitchen_status);
     printf("The status of receive counter: %d\n", receive_status);
-    printf("The income of this time: %d\n", value);
-    printf("Total delay in ordering counter: %d\n", order_delay);
-    printf("Total delay in kitchen: %d\n", cook_delay);
-    printf("Total delay in receive counter: %d", food_delay);
+    printf("\nTotal delay in ordering counter: %f\n", (float)order_delay / sim_time);
+    printf("Total delay in kitchen: %f\n", (float)cook_delay / sim_time);
+    printf("Total delay in receive counter: %f\n", (float)food_delay / sim_time);
+    printf("\nOrder efficiency: %f\n", (float)time_order_busy / sim_time);
+    printf("Kitchen efficiency: %f\n", (float)time_kitchen_busy / sim_time);
+    printf("Receive efficiency: %f\n", (float)time_receive_busy / sim_time);
 }
 
 void print_time_next_event(void) {
