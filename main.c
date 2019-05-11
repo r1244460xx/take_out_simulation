@@ -46,6 +46,10 @@ int order_delay = 0;
 int cook_delay = 0;
 int food_delay = 0;
 int receive_delay = 0;
+int arrive_number = 1;
+int order_number = 1;
+int food_number = 1;
+int depart_number = 1;
 
 PTR_SET order_set;
 PTR_SET cook_set;
@@ -214,13 +218,13 @@ void depart_store(void) {
         time_next_event[DEPART_STORE] = sim_time + new_receive_delay();
         num_food_q--;
         dequeue(&food_set);
-        num_cust_served++;
     }
+    num_cust_served++;
     rest_cust--;
 }
  
 void report(void) {
-    printf("Total simulation time(s): %d\n", END_TIME);
+    printf("Total simulation time(s): %d\n", sim_time);
     printf("Number of serverd customers: %d\n", num_cust_served);
     printf("Average delay of one customer: %d\n", total_delay / num_cust_served);
     printf("Rest customers in store: %d\n", rest_cust); 
@@ -228,6 +232,9 @@ void report(void) {
     printf("Number of people in kitchen q: %d\n", num_kitchen_q);
     printf("Number of food in q: %d\n", num_food_q);
     printf("Number of people in receive q: %d\n", num_receive_q);
+    printf("The status of ordering counter: %d\n", order_status);
+    printf("The status of kitchen counter: %d\n", kitchen_status);
+    printf("The status of receive counter: %d\n", receive_status);
     printf("The income of this time: %d\n", value);
     printf("Total delay in ordering counter: %d\n", order_delay);
     printf("Total delay in kitchen: %d\n", cook_delay);
@@ -243,42 +250,43 @@ void print_time_next_event(void) {
 
 int main(void) {
     initialize();
-    while(1) {
+    while(num_cust_served < 100) {
         timing();
         //print_time_next_event();
         update_stat();
         switch(next_event_type) {
             case ARRIVE:
-                //printf("New arrive event\n");
+                printf("New customer%d arrives.\n", arrive_number++);
                 arrive_order();                
                 break;
             
             case DEPART_ORDER:
-                //printf("New order joinning kitchen event\n");
+                printf("New order%d is sent to kitchen.\n", order_number++);
                 depart_order();               
                 break;
 
             case DEPART_KITCHEN:
-                //printf("New food processed event\n");
+                printf("New dish%d is finished.\n",food_number++);
                 depart_kitchen();            
                 break;
              
             case DEPART_STORE:
-                //printf("New depart event\n");
+                printf("A customer%d departs.\n", depart_number++);
                 depart_store();
                 break;
 
             case END:
-                //printf("Ending event\n\n");
+                printf("Ending event\n\n");
                 report();              
                 exit(1);
                 break;
             
             default:
-                //printf("Error type\n");
+                printf("Error type\n");
                 exit(1);
                 break;
         }
         //printf("\n");
     } 
+    report();
 }
