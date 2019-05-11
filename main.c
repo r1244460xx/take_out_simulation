@@ -14,7 +14,7 @@
 #define DEPART_KITCHEN 2
 #define DEPART_STORE 3
 #define END 4
-#define END_TIME 7200
+#define END_TIME 10800
 
 typedef struct node{
     int time;
@@ -37,6 +37,8 @@ int num_kitchen_q = 0;
 int num_food_q = 0;
 int num_receive_q = 0;
 int num_cust_served = 0;
+int num_cust_lost = 0;
+int num_cust_arrive = 0;
 int total_delay = 0;
 int time_next_event[5];
 int time_last_event = 0;
@@ -44,7 +46,8 @@ int time_order_busy = 0;
 int time_kitchen_busy = 0;
 int time_receive_busy = 0;
 int rest_cust = 0;
-int value = 0;
+int gain = 0;
+int lost = 0;
 int order_delay = 0;
 int cook_delay = 0;
 int food_delay = 0;
@@ -53,6 +56,8 @@ int arrive_number = 1;
 int order_number = 1;
 int food_number = 1;
 int depart_number = 1;
+
+int receive_occupied = 0;
 
 PTR_SET order_set;
 PTR_SET cook_set;
@@ -124,6 +129,12 @@ void initialize(void) {
     time_next_event[DEPART_KITCHEN] = INF;
     time_next_event[DEPART_STORE] = INF;
     time_next_event[END] = END_TIME;
+    order_set.head = NULL;
+    order_set.tail = NULL;
+    cook_set.head = NULL;
+    cook_set.tail = NULL;
+    food_set.head = NULL;
+    food_set.tail = NULL;
     printf("Initialize over\n\n");
 }
 
@@ -137,6 +148,29 @@ void timing(void) {
     }
     time_last_event = sim_time;
     sim_time = min_next_event;
+}
+
+void dissatisfied(void) {
+    NODE* ptr = order_set.head;
+    while(ptr != NULL) {
+        if(sim_time - ptr->time > 900) {
+            lost += new_arrival();
+            num_order_q--;
+            //printf("The angry guest's time is: %d\n", ptr->time);
+            num_cust_lost++;
+            dequeue(&order_set);        
+        }
+        ptr = ptr->next;
+    }  
+}
+
+void print_order_q(void) {
+    NODE* ptr = order_set.head;
+    while(ptr != NULL) {
+        printf("|%d|->", ptr->time);
+        ptr = ptr->next;
+    }
+    printf("\n");
 }
 
 void update_stat(void) {
@@ -153,10 +187,13 @@ void update_stat(void) {
     if(receive_status == BUSY) {
         time_receive_busy += sim_time - time_last_event;
     }
+    dissatisfied();
+    //print_order_q();
 }
 
 void arrive_order(void) {
     time_next_event[ARRIVE] = sim_time + new_arrival();
+    num_cust_arrive++;
     rest_cust++;
     if(order_status == BUSY) {
         num_order_q++;
@@ -189,11 +226,16 @@ void depart_order(void) {
         time_next_event[DEPART_ORDER] = sim_time + new_order_delay();
         dequeue(&order_set);
     }
-    value += new_value();
+    gain += new_value();
     arrive_kitchen();
     
-    enqueue(sim_time, &receive_set);
-    num_receive_q++;
+    if(receive_occupied == 0) {
+        receive_occupied = 1;
+    }
+    else {
+        enqueue(sim_time, &receive_set);
+        num_receive_q++;
+    }
 }
 
 void arrive_food(void) {
@@ -231,20 +273,27 @@ void depart_store(void) {
     }
     num_cust_served++;
     rest_cust--;
-    dequeue(&receive_set);
-    num_receive_q--;
+    if(num_receive_q == 0) {
+        receive_occupied = 0;
+    }
+    else {
+        dequeue(&receive_set);
+        num_receive_q--;
+    }
 }
 
 void report(void) {
     printf("Total simulation time(s): %d\n", sim_time);
-    printf("Average delay of one customer: %d\n", total_delay / num_cust_served);
-    printf("\nRest customers in store: %d\n", rest_cust); 
+    //printf("\nRest customers in store: %d\n", rest_cust); 
+    printf("\nNumber of people arriving: %d\n", num_cust_arrive);
     printf("Number of serverd customers: %d\n", num_cust_served);
+    printf("Number of people lost: %d\n", num_cust_lost);
     printf("Number of people in order q: %d\n", num_order_q);
     printf("Number of people in kitchen q: %d\n", num_kitchen_q);
     printf("Number of food in q: %d\n", num_food_q);
     printf("Number of people in receive q: %d\n", num_receive_q);
-    printf("The income of this time: %d\n", value);
+    printf("The gain of this simulation: %d\n", gain);
+    printf("The lost of this simulation: %d\n", lost);
     printf("\nThe status of ordering counter: %d\n", order_status);
     printf("The status of kitchen counter: %d\n", kitchen_status);
     printf("The status of receive counter: %d\n", receive_status);
@@ -265,39 +314,39 @@ void print_time_next_event(void) {
 
 int main(void) {
     initialize();
-    while(num_cust_served < 100) {
+    while(1) {
         timing();
         //print_time_next_event();
         update_stat();
         switch(next_event_type) {
             case ARRIVE:
-                printf("New customer%d arrives.\n", arrive_number++);
+                //printf("New customer%d arrives.\n", arrive_number++);
                 arrive_order();                
                 break;
             
             case DEPART_ORDER:
-                printf("New order%d is sent to kitchen.\n", order_number++);
+                //printf("New order%d is sent to kitchen.\n", order_number++);
                 depart_order();               
                 break;
 
             case DEPART_KITCHEN:
-                printf("New dish%d is finished.\n",food_number++);
+                //printf("New dish%d is finished.\n",food_number++);
                 depart_kitchen();            
                 break;
              
             case DEPART_STORE:
-                printf("A customer%d departs.\n", depart_number++);
+                //printf("A customer%d departs.\n", depart_number++);
                 depart_store();
                 break;
 
             case END:
-                printf("Ending event\n\n");
+                //printf("Ending event\n\n");
                 report();              
                 exit(1);
                 break;
             
             default:
-                printf("Error type\n");
+                //printf("Error type\n");
                 exit(1);
                 break;
         }
