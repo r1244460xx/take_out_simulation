@@ -205,8 +205,6 @@ void depart_kitchen(void) {
         time_next_event[DEPART_KITCHEN] = sim_time + new_cook_delay();
     }
     arrive_food();
-    dequeue(&receive_set);
-    num_receive_q--;
 }
 
 void depart_store(void) {
@@ -221,6 +219,8 @@ void depart_store(void) {
     }
     num_cust_served++;
     rest_cust--;
+    dequeue(&receive_set);
+    num_receive_q--;
 }
  
 void report(void) {
