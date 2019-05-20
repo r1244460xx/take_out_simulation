@@ -15,6 +15,7 @@
 #define DEPART_STORE 3
 #define END 4
 #define END_TIME 10800
+#define MAX_LENG 5
 
 typedef struct node{
     int time;
@@ -154,7 +155,7 @@ void dissatisfied(void) {
     NODE* ptr = order_set.head;
     while(ptr != NULL) {
         if(sim_time - ptr->time > 900) {
-            lost += new_arrival();
+            lost += new_value();
             num_order_q--;
             //printf("The angry guest's time is: %d\n", ptr->time);
             num_cust_lost++;
@@ -194,15 +195,22 @@ void update_stat(void) {
 void arrive_order(void) {
     time_next_event[ARRIVE] = sim_time + new_arrival();
     num_cust_arrive++;
-    rest_cust++;
-    if(order_status == BUSY) {
-        num_order_q++;
-        enqueue(sim_time, &order_set);
+    if(num_order_q < MAX_LENG) {  //If order queue is full, blocked
+        rest_cust++;
+        if(order_status == BUSY) {
+            num_order_q++;
+            enqueue(sim_time, &order_set);
+        }
+        else {
+            order_status = BUSY;
+            time_next_event[DEPART_ORDER] = sim_time + new_order_delay();
+        }
     }
     else {
-        order_status = BUSY;
-        time_next_event[DEPART_ORDER] = sim_time + new_order_delay();
+        lost += new_value();
+        num_cust_lost++;
     }
+    
 }
 
 void arrive_kitchen(void) {
@@ -217,25 +225,29 @@ void arrive_kitchen(void) {
 }
 
 void depart_order(void) {
-    if(num_order_q == 0) {
-        order_status = IDLE;
-        time_next_event[DEPART_ORDER] = INF;
+    if(num_receive_q == MAX_LENG) {
+        time_next_event[DEPART_ORDER] = INF; //If receiving queue if full, blocked
     }
     else {
-        num_order_q--;
-        time_next_event[DEPART_ORDER] = sim_time + new_order_delay();
-        dequeue(&order_set);
-    }
-    gain += new_value();
-    arrive_kitchen();
-    
-    if(receive_occupied == 0) {
-        receive_occupied = 1;
-    }
-    else {
-        enqueue(sim_time, &receive_set);
-        num_receive_q++;
-    }
+        gain += new_value();
+        arrive_kitchen(); 
+        if(num_order_q == 0) {
+            order_status = IDLE;
+            time_next_event[DEPART_ORDER] = INF;
+        }
+        else {
+            num_order_q--;
+            time_next_event[DEPART_ORDER] = sim_time + new_order_delay();
+            dequeue(&order_set);
+        }        
+        if(receive_occupied == IDLE) {
+            receive_occupied = BUSY;
+        }
+        else {
+            enqueue(sim_time, &receive_set);
+            num_receive_q++;
+        }  
+    }    
 }
 
 void arrive_food(void) {
@@ -274,11 +286,14 @@ void depart_store(void) {
     num_cust_served++;
     rest_cust--;
     if(num_receive_q == 0) {
-        receive_occupied = 0;
+        receive_occupied = IDLE;
     }
     else {
         dequeue(&receive_set);
         num_receive_q--;
+        if(num_receive_q == MAX_LENG - 1) {
+            depart_order();             
+        }
     }
 }
 
