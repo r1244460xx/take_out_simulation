@@ -15,7 +15,8 @@
 #define DEPART_STORE 3
 #define END 4
 #define END_TIME 10800
-#define MAX_LENG 10
+
+int MAX_LENG = 5;
 
 typedef struct node{
     int time;
@@ -129,7 +130,7 @@ void initialize(void) {
     time_next_event[DEPART_ORDER] = INF;
     time_next_event[DEPART_KITCHEN] = INF;
     time_next_event[DEPART_STORE] = INF;
-    time_next_event[END] = END_TIME;
+    time_next_event[END] = 3600;
     order_set.head = NULL;
     order_set.tail = NULL;
     cook_set.head = NULL;
@@ -209,6 +210,8 @@ void arrive_order(void) {
     else {
         lost += new_value();
         num_cust_lost++;
+        printf("queue is too long, customer is gone!\n");
+        arrive_number--;
     }
     
 }
@@ -227,6 +230,7 @@ void arrive_kitchen(void) {
 void depart_order(void) {
     if(num_receive_q == MAX_LENG) {
         time_next_event[DEPART_ORDER] = INF - 1; //If receiving queue if full, blocked
+        printf("Receive q is full\n");
     }
     else {
         gain += new_value();
@@ -293,32 +297,34 @@ void depart_store(void) {
         dequeue(&receive_set);
         num_receive_q--;
         if(num_receive_q == MAX_LENG - 1 && time_next_event[DEPART_ORDER] == INF - 1) {
-            depart_order();             
+            depart_order(); 
+            printf("Re-depart order\n");            
         }
     }
 }
 
 void report(void) {
-    printf("Total simulation time(s): %d\n", sim_time);
+    printf("---------------------------------------------");
+    printf("\nTotal simulation time(s): %d\n", sim_time);
     //printf("\nRest customers in store: %d\n", rest_cust); 
-    printf("\nNumber of people arriving: %d\n", num_cust_arrive);
+    /*printf("\nNumber of people arriving: %d\n", num_cust_arrive);
     printf("Number of serverd customers: %d\n", num_cust_served);
     printf("Number of people lost: %d\n", num_cust_lost);
     printf("Number of people in order q: %d\n", num_order_q);
-    printf("Number of people in kitchen q: %d\n", num_kitchen_q);
+    printf("Number of food in kitchen q: %d\n", num_kitchen_q);
     printf("Number of food in q: %d\n", num_food_q);
-    printf("Number of people in receive q: %d\n", num_receive_q);
+    printf("Number of people in receive q: %d\n", num_receive_q);*/
     printf("The gain of this simulation: %d\n", gain);
     printf("The lost of this simulation: %d\n", lost);
-    printf("\nThe status of ordering counter: %d\n", order_status);
+    /*printf("\nThe status of ordering counter: %d\n", order_status);
     printf("The status of kitchen counter: %d\n", kitchen_status);
     printf("The status of receive counter: %d\n", receive_status);
-    printf("\nTotal delay in ordering counter: %f\n", (float)order_delay / sim_time);
-    printf("Total delay in kitchen: %f\n", (float)cook_delay / sim_time);
-    printf("Total delay in receive counter: %f\n", (float)food_delay / sim_time);
-    printf("\nOrder efficiency: %f\n", (float)time_order_busy / sim_time);
-    printf("Kitchen efficiency: %f\n", (float)time_kitchen_busy / sim_time);
-    printf("Receive efficiency: %f\n", (float)time_receive_busy / sim_time);
+    printf("\nTotal delay in ordering counter: %.4f\n", (float)order_delay / sim_time);
+    printf("Total delay in kitchen: %.4f\n", (float)cook_delay / sim_time);
+    printf("Total delay in receive counter: %.4f\n", (float)food_delay / sim_time);*/
+    printf("\nOrder efficiency: %.4f\n", (float)time_order_busy / sim_time);
+    printf("Kitchen efficiency: %.4f\n", (float)time_kitchen_busy / sim_time);
+    printf("Receive efficiency: %.4f\n", (float)time_receive_busy / sim_time);
 }
 
 void print_time_next_event(void) {
@@ -334,31 +340,35 @@ int main(void) {
         timing();
         //print_time_next_event();
         update_stat();
+        printf("%4d: ", sim_time);
         switch(next_event_type) {
             case ARRIVE:
-                //printf("New customer%d arrives.\n", arrive_number++);
+                printf("New customer%d arrives.\n", arrive_number++);
                 arrive_order();                
                 break;
             
             case DEPART_ORDER:
-                //printf("New order%d is sent to kitchen.\n", order_number++);
+                printf("New order%d is sent to kitchen.\n", order_number++);
                 depart_order();               
                 break;
 
             case DEPART_KITCHEN:
-                //printf("New dish%d is finished.\n",food_number++);
+                printf("New dish%d is finished.\n",food_number++);
                 depart_kitchen();            
                 break;
              
             case DEPART_STORE:
-                //printf("A customer%d departs.\n", depart_number++);
+                printf("A customer%d departs.\n", depart_number++);
                 depart_store();
                 break;
 
             case END:
                 //printf("Ending event\n\n");
-                report();              
-                exit(1);
+                report();    
+                time_next_event[END] += 3600;
+                if(time_next_event[END] > END_TIME) {
+                    exit(1);
+                }                         
                 break;
             
             default:
