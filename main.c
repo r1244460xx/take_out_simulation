@@ -15,7 +15,7 @@
 #define DEPART_STORE 3
 #define END 4
 #define END_TIME 10800
-#define MAX_LENG 5
+#define MAX_LENG 10
 
 typedef struct node{
     int time;
@@ -226,7 +226,7 @@ void arrive_kitchen(void) {
 
 void depart_order(void) {
     if(num_receive_q == MAX_LENG) {
-        time_next_event[DEPART_ORDER] = INF; //If receiving queue if full, blocked
+        time_next_event[DEPART_ORDER] = INF - 1; //If receiving queue if full, blocked
     }
     else {
         gain += new_value();
@@ -287,11 +287,12 @@ void depart_store(void) {
     rest_cust--;
     if(num_receive_q == 0) {
         receive_occupied = IDLE;
+        time_next_event[DEPART_STORE] = INF;
     }
     else {
         dequeue(&receive_set);
         num_receive_q--;
-        if(num_receive_q == MAX_LENG - 1) {
+        if(num_receive_q == MAX_LENG - 1 && time_next_event[DEPART_ORDER] == INF - 1) {
             depart_order();             
         }
     }
