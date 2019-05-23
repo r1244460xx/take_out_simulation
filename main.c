@@ -117,7 +117,7 @@ int new_order_delay(void) {
 }
 
 int new_cook_delay(void) {
-    return rand() % 96 + 1;
+    return rand() % 120 + 1;
 }
 
 int new_receive_delay(void) {
@@ -319,9 +319,10 @@ void report(void) {
     /*printf("\nThe status of ordering counter: %d\n", order_status);
     printf("The status of kitchen counter: %d\n", kitchen_status);
     printf("The status of receive counter: %d\n", receive_status);
+    */
     printf("\nTotal delay in ordering counter: %.4f\n", (float)order_delay / sim_time);
     printf("Total delay in kitchen: %.4f\n", (float)cook_delay / sim_time);
-    printf("Total delay in receive counter: %.4f\n", (float)food_delay / sim_time);*/
+    printf("Total delay in receive counter: %.4f\n", (float)food_delay / sim_time);
     printf("\nOrder efficiency: %.4f\n", (float)time_order_busy / sim_time);
     printf("Kitchen efficiency: %.4f\n", (float)time_kitchen_busy / sim_time);
     printf("Receive efficiency: %.4f\n", (float)time_receive_busy / sim_time);
@@ -340,25 +341,25 @@ int main(void) {
         timing();
         //print_time_next_event();
         update_stat();
-        printf("%4d: ", sim_time);
+        //printf("%4d: ", sim_time);
         switch(next_event_type) {
             case ARRIVE:
-                printf("New customer%d arrives.\n", arrive_number++);
+                //printf("New customer%d arrives.\n", arrive_number++);
                 arrive_order();                
                 break;
             
             case DEPART_ORDER:
-                printf("New order%d is sent to kitchen.\n", order_number++);
+                //printf("New order%d is sent to kitchen.\n", order_number++);
                 depart_order();               
                 break;
 
             case DEPART_KITCHEN:
-                printf("New dish%d is finished.\n",food_number++);
+                //printf("New dish%d is finished.\n",food_number++);
                 depart_kitchen();            
                 break;
              
             case DEPART_STORE:
-                printf("A customer%d departs.\n", depart_number++);
+                //printf("A customer%d departs.\n", depart_number++);
                 depart_store();
                 break;
 
